@@ -16,7 +16,7 @@ import { getError } from '../utils';
 import { Store } from '../Store';
 import FloatingLabel from 'react-bootstrap/FloatingLabel';
 import { toast } from 'react-toastify';
-
+import { api } from '../config';
 const reducer = (state, action) => {
   switch (action.type) {
     case 'REFRESH_PRODUCT':
@@ -44,6 +44,48 @@ function ProductScreen() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [selectedImage, setSelectedImage] = useState('');
+  const [selectedUserImage, setSelectedUserImage] = useState(null);
+
+  const handleFileChange = (event) => {
+    setSelectedUserImage(event.target.files[0]);
+  };
+
+  const handleFormSubmit = async (event) => {
+    console.log('clicked')
+    event.preventDefault();
+
+
+    if (selectedUserImage) {
+      const formData = new FormData();
+      formData.append('image', selectedUserImage);
+      formData.append('userId', userInfo._id);
+
+      const headers = {
+        Authorization: `Bearer${userInfo.token}`,
+      };
+      try {
+        const response = await fetch(
+          `https://wolin-ecommerce.onrender.com/api/users/upload/image?width=1080&height=720`,
+          {
+            method: 'POST',
+            headers,
+            body: formData,
+          }
+        );
+        const result = await response.json();
+        console.log(result);
+        console.log(product._id)
+        console.log(userInfo._id);
+      } catch (error) {
+        return error;
+      }
+    }
+  };
+
+
+
+
+
 
   const navigate = useNavigate();
   const params = useParams();
@@ -59,7 +101,7 @@ function ProductScreen() {
     const fetchData = async () => {
       dispatch({ type: 'FETCH_REQUEST' });
       try {
-        const result = await axios.get(`/api/products/slug/${slug}`);
+        const result = await axios.get(`https://wolin-ecommerce.onrender.com/api/products/slug/${slug}`);
         dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
@@ -73,7 +115,7 @@ function ProductScreen() {
   const addToCartHandler = async () => {
     const existItem = cart.cartItems.find((x) => x._id === product._id);
     const quantity = existItem ? existItem.quantity + 1 : 1;
-    const { data } = await axios.get(`/api/products/${product._id}`);
+    const { data } = await axios.get(`https://wolin-ecommerce.onrender.com/api/products/${product._id}`);
     if (data.countInStock < quantity) {
       window.alert('Sorry. Product is out of stock');
       return;
@@ -93,7 +135,7 @@ function ProductScreen() {
     }
     try {
       const { data } = await axios.post(
-        `/api/products/${product._id}/reviews`,
+        `https://wolin-ecommerce.onrender.com/api/products/${product._id}/reviews`,
         { rating, comment, name: userInfo.name },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -148,20 +190,13 @@ function ProductScreen() {
             <ListGroup.Item>Pirce : ${product.price}</ListGroup.Item>
             <ListGroup.Item>
               <Row xs={1} md={2} className="g-2">
-                {[product.image, ...product.images].map((x) => (
-                  <Col key={x}>
-                    <Card>
-                      <Button
-                        className="thumbnail"
-                        type="button"
-                        variant="light"
-                        onClick={() => setSelectedImage(x)}
-                      >
-                        <Card.Img variant="top" src={x} alt="product" />
-                      </Button>
-                    </Card>
-                  </Col>
-                ))}
+                    <Link to={`/product/custom_look/${product.slug}`} className='w-100'><Button className='secondary w-100'>Check Custom Look</Button></Link>
+                    {/* <form onSubmit={handleFormSubmit}>
+                      <input type='file' name='image' onChange={handleFileChange} />
+                      <button type='submit' className='btn btn-primary'>
+                        Add Image
+                      </button>
+                    </form> */}
               </Row>
             </ListGroup.Item>
             <ListGroup.Item>

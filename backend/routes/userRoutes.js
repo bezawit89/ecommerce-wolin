@@ -3,7 +3,12 @@ import bcrypt from 'bcryptjs';
 import expressAsyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
+import UserImage from '../models/userImageModel.js';
 import { isAuth, isAdmin, generateToken, baseUrl, mailgun } from '../utils.js';
+import uploadImage from '../middleware/upload.js'
+import manageImage from '../utils/upload.js'
+import axios from 'axios';
+
 
 const userRouter = express.Router();
 
@@ -194,5 +199,39 @@ userRouter.post(
     });
   })
 );
+
+userRouter.post('/upload/image', uploadImage, manageImage,
+  expressAsyncHandler(async (req, res) => {
+    const { userId } = req.body;
+    const newUserImage = new UserImage({
+      userId,
+      path: req.pathName,
+    });
+    const userImage = await newUserImage.save();
+    res.send({
+      id: userImage._id,
+      path: userImage.path,
+    });
+  })
+)
+
+userRouter.post('/custom/image', expressAsyncHandler(async (req, res) => {
+  const { userImageUrl, productImageUrl } = req.body;
+  console.log(userImageUrl, productImageUrl)
+  const requestData = {
+    personImage: userImageUrl,
+    clothImage: productImageUrl,
+  };
+  console.log(userImageUrl, productImageUrl);
+
+  try {
+    const response = await axios.post('https://sabawi.theupcomers.com/processImage', requestData);
+    return res.json(response.data);
+  } catch (error) {
+    console.log(error);
+  }
+
+
+}));
 
 export default userRouter;
